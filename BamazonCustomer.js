@@ -20,7 +20,7 @@ connection.end();
 
 prompt.start();
 prompt.get(['ProductID', 'Quantity'], function(err, result) {
-
+  console.log(result.ProductID, result.Quantity);
 })
 
 // pseudo-ish code
