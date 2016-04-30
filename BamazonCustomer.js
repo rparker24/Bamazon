@@ -7,36 +7,51 @@ var connection = mysql.createConnection({
   password : 'bootcamp',
   database : 'bamazon'
 });
- 
-connection.connect();
- 
-connection.query('SELECT * FROM products', function(err, rows, fields) {
-  if (err) throw err;
-  console.log('The solution is: ', rows);
 
-});
- 
-connection.end();
+var orderedProductID = 4;
+var orderQuantity = 7;
 
-prompt.start();
-prompt.get(['ProductID', 'Quantity'], function(err, result) {
-  console.log(result.ProductID, result.Quantity);
-})
+function showInventory() {
+  connection.query('SELECT ItemID, ProductName, Price FROM products', function(err, rows, fields) {
+    if (err) throw err;
+    console.log('Available products: ', rows);
 
-// pseudo-ish code
-var prodID = result.ProductID;
-var orderQuant = result.Quantity;
+  });
+};
 
-var itemStock = SELECT stockQuantity FROM products WHERE id = prodID;
-var itemPrice = SELECT price FROM products WHERE id = prodID;
+function checkInventory() {
+  connection.query('SELECT StockQuantity FROM products WHERE ItemID = ?' [orderedProductID], function(err, rows, fields) {
+    if(err) throw err;
+    console.log(rows[0]);
+    // if(JSON.parse(rows[0].stockQuantity) >= orderQuantity) {
+    //   var adjQuantity = rows[0].stockQuantity - orderQuantity;
+    //   console.log(adjQuantity);
+      // connection.query('UPDATE products SET stockQuantity ? WHERE ItemID=?', [adjQuantity, orderedProductID], function(err, rows, fields) {
+      //   if(err) throw err;
+      // });
 
-if(itemStock > orderQuant) {
-  orderCost = orderQuant * itemPrice;
-  console.log('The customer owes $' + orderCost);
-} else {
-  console.log('Insufficient Quantity');
+    // }
+  });
 }
 
-var stockLeft = itemStock - orderQuant;
+function getPrice() {
+  connection.query('SELECT Price FROM products WHERE ItemID = ?', [orderedProductID], function(err, rows, fields) {
+    if(err) throw err;
+    var orderPrice = JSON.parse(rows[0].Price) * orderQuantity;
+    console.log('This order costs: $' + orderPrice);
+  });
+}
 
-UPDATE products SET stockQuantity = 'stockLeft' WHERE ItemID = 'prodID';
+// prompt.start();
+// prompt.get(['ProductID', 'Quantity'], function(err, result) {
+//   console.log(result.ProductID, result.Quantity);
+  // var orderedProductID = result.ProductID;
+  // var orderQuantity = result.Quantity;
+// });
+
+
+showInventory();
+checkInventory();
+getPrice();
+
+connection.end();
