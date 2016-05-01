@@ -75,5 +75,5 @@ function updateStock(adjQuantity, id) {
   });
 }
 
-// runs the program
+// runs the program by calling the first function which then waterfalls through nested function calls
 showInventory();
