@@ -1,6 +1,7 @@
 var mysql = require('mysql');
 var prompt = require('prompt');
 
+// object variable containing settings for connecting to the MySQL DB
 var connection = mysql.createConnection({
   host : 'localhost',
   user : 'root',
@@ -8,53 +9,71 @@ var connection = mysql.createConnection({
   database : 'bamazon'
 });
 
-var orderedProductID = 4;
-var orderQuantity = 3;
+// prompt setup
+var schema = {
+  properties: {
+    ItemID: {
+      message: 'Enter the Item ID of the product you wish to purchase',
+      required: true
+    },
+    quantity: {
+      message: 'Enter the quantity you wish to purchase',
+      required: true
+    }
+  }
+};
 
+// shows inventory from DB then runs the prompt function which starts a cascade of nested function calls
 function showInventory() {
   connection.query('SELECT ItemID, ProductName, Price FROM products', function(err, rows, fields) {
     if (err) throw err;
-    console.log('Available products: ', rows);
-
+    console.log('Available products:');
+    for(var i = 0; i < rows.length; i++) {
+      console.log('Item ID: ' + rows[i].ItemID + '   Product Name: ' + rows[i].ProductName + '   Price: $' + rows[i].Price);
+    }
+    runPrompt();
   });
 };
 
-function checkInventory() {
-  connection.query('SELECT StockQuantity FROM products WHERE ItemID = ?', [orderedProductID], function(err, rows, fields) {
+function runPrompt() {
+  prompt.start();
+  prompt.get(schema, function(err, result) {
+    var orderedProductID = result.ItemID;
+    var orderQuantity = result.quantity;
+    processOrder(orderedProductID, orderQuantity);
+  });
+}
+
+function processOrder(id, quantity) {
+  connection.query('SELECT StockQuantity FROM products WHERE ItemID = ?', [id], function(err, rows, fields) {
     if(err) throw err;
-    console.log(JSON.parse(rows[0].StockQuantity));
-    console.log(orderQuantity);
-    if(JSON.parse(rows[0].StockQuantity) >= orderQuantity) {
-      var adjQuantity = rows[0].StockQuantity - orderQuantity;
-      console.log(adjQuantity);
-      // connection.query('UPDATE products SET stockQuantity ? WHERE ItemID=?', [adjQuantity, orderedProductID], function(err, rows, fields) {
-      //   if(err) throw err;
-      // });
-      return true;
+
+    if(JSON.parse(rows[0].StockQuantity) >= quantity) {
+      var adjQuantity = rows[0].StockQuantity - quantity;
+      getPrice(id, quantity);
+      updateStock(adjQuantity, id);
     } else {
-      return false;
+      console.log('There is not enough stock to fulfill your request, please try again');
+      connection.end();
     }
   });
 }
 
-function getPrice() {
-  connection.query('SELECT Price FROM products WHERE ItemID = ?', [orderedProductID], function(err, rows, fields) {
+function getPrice(id, quantity) {
+  connection.query('SELECT Price FROM products WHERE ItemID = ?', [id], function(err, rows, fields) {
     if(err) throw err;
-    var orderPrice = JSON.parse(rows[0].Price) * orderQuantity;
-    console.log('This order costs: $' + orderPrice);
+    var orderPrice = JSON.parse(rows[0].Price) * quantity;
+    console.log('The total order cost is: $' + orderPrice);
   });
 }
 
-// prompt.start();
-// prompt.get(['ProductID', 'Quantity'], function(err, result) {
-//   console.log(result.ProductID, result.Quantity);
-//   var orderedProductID = result.ProductID;
-//   var orderQuantity = result.Quantity;
-// });
+function updateStock(adjQuantity, id) {
+  connection.query('UPDATE products SET stockQuantity = ? WHERE ItemID = ?', [adjQuantity, id], function(err, rows, fields) {
+    if(err) throw err;
+    console.log('Inventory has been updated');
+    connection.end();
+  });
+}
 
-
+// runs the program
 showInventory();
-checkInventory();
-// getPrice();
-
-connection.end();
